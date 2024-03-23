@@ -1,24 +1,30 @@
-FROM python:3.12.2
+# Use an official Python runtime as a parent image
+FROM python:3.12.2-slim-bullseye
+
+# Set work directory
+WORKDIR /app
 
 # Set environment varibles
 ENV PYTHONDONTWRITEBYTECODE 1
 ENV PYTHONUNBUFFERED 1
 
-WORKDIR /app
-
-RUN apt-get update && apt-get install -y curl vim
+# Install system dependencies
+RUN apt-get update && apt-get install -y curl vim netcat
 RUN apt-get clean
 
+# Upgrade pip
 RUN pip install --upgrade pip
 
-# Install dependencies
+# Install poetry
+COPY pyproject.toml poetry.lock /app/
 RUN pip install poetry
-COPY pyproject.toml .
-COPY poetry.lock .
 RUN poetry config virtualenvs.create false \
-  && poetry install --no-interaction --no-ansi
+    && poetry install --no-interaction --no-ansi
 
-COPY . /app
+# Copy project
+COPY ./app /app/
+
+ARG DJANGO_SETTINGS_MODULE
+ENV DJANGO_SETTINGS_MODULE ${DJANGO_SETTINGS_MODULE}
 
 EXPOSE 8000
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
